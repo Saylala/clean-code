@@ -1,18 +1,19 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Text;
 using NUnit.Framework;
 
 namespace Markdown
 {
 	[TestFixture]
-	class MdTests
+	class RendererTests
 	{
-		private Md mdRenderer;
+		private Renderer renderer;
 
 		[SetUp]
 		public void SetUp()
 		{
-			mdRenderer = new Md();
+			renderer = new Renderer();
 		}
 
 		[Test]
@@ -20,7 +21,7 @@ namespace Markdown
 		{
 			var input = string.Empty;
 
-			var result = mdRenderer.Render(input);
+			var result = renderer.Render(input);
 
 			Assert.AreEqual(string.Empty, result);
 		}
@@ -32,7 +33,7 @@ namespace Markdown
 		[TestCase("123 abc")]
 		public void MdRenderer_StringWithoutTagsGiven_InputStringReturned(string input)
 		{
-			var result = mdRenderer.Render(input);
+			var result = renderer.Render(input);
 
 			Assert.AreEqual(input, result);
 		}
@@ -43,7 +44,7 @@ namespace Markdown
 		[TestCase("xy_zx_y", ExpectedResult = "xy<em>zx</em>y")]
 		public string MdRenderer_StringWithItalicGiven_ItalicTagsAreReplaced(string input)
 		{
-			var result = mdRenderer.Render(input);
+			var result = renderer.Render(input);
 
 			return result;
 		}
@@ -55,7 +56,7 @@ namespace Markdown
 		[TestCase(@"\_ab\_c", ExpectedResult = "_ab_c")]
 		public string MdRenderer_StringWithEscapedTags_TagsAreNotReplaced(string input)
 		{
-			var result = mdRenderer.Render(input);
+			var result = renderer.Render(input);
 
 			return result;
 		}
@@ -66,42 +67,43 @@ namespace Markdown
 		[TestCase("xy__zx__y", ExpectedResult = "xy<strong>zx</strong>y")]
 		public string MdRenderer_StringWithBoldGiven_BoldTagsAreReplaced(string input)
 		{
-			var result = mdRenderer.Render(input);
+			var result = renderer.Render(input);
 
 			return result;
 		}
 
-		[TestCase("__ab_abc_ab__", ExpectedResult = "<strong>ab<em>abc</em>ab</strong>")]
-		[TestCase("__a_b_c__", ExpectedResult = "<strong>a<em>b</em>c</strong>")]
-		[TestCase("__abc_abc_abc__ ", ExpectedResult = "<strong>abc<em>abc</em>abc</strong> ")]
-		[TestCase("__y z x_y z x_y z x__", ExpectedResult = "<strong>y z x<em>y z x</em>y z x</strong>")]
-		public string MdRenderer_StringWithItalicInsideBoldGiven_AllTagsAreReplaced(string input)
-		{
-			var result = mdRenderer.Render(input);
+        [TestCase("__ab_abc_ab__", ExpectedResult = "<strong>ab<em>abc</em>ab</strong>")]
+        [TestCase("__a _b_ _b_ _b_ c__", ExpectedResult = "<strong>a <em>b</em> <em>b</em> <em>b</em> c</strong>")]
+        [TestCase("__abc_abc_abc__ ", ExpectedResult = "<strong>abc<em>abc</em>abc</strong> ")]
+        [TestCase("__y z x_y z x_y z x__", ExpectedResult = "<strong>y z x<em>y z x</em>y z x</strong>")]
+        public string MdRenderer_StringWithItalicInsideBoldGiven_AllTagsAreReplaced(string input)
+        {
+            var result = renderer.Render(input);
 
-			return result;
-		}
+            return result;
+        }
 
-		[TestCase("_ab__abc__ab_", ExpectedResult = "<em>ab__abc__ab</em>")]
-		[TestCase("_a__b__c_", ExpectedResult = "<em>a__b__c</em>")]
-		[TestCase("_abc__abc__abc_ ", ExpectedResult = "<em>abc__abc__abc</em> ")]
-		[TestCase("_y z x__y z x__y z x_", ExpectedResult = "<em>y z x__y z x__y z x</em>")]
-		public string MdRenderer_StringWithBoldInsideItalicGiven_BoldTagsAreNotReplaced(string input)
-		{
-			var result = mdRenderer.Render(input);
+        [TestCase("_ab__abc__ab_", ExpectedResult = "<em>ab__abc__ab</em>")]
+        [TestCase("_a__b__c_", ExpectedResult = "<em>a__b__c</em>")]
+        [TestCase("_abc__abc__abc_ ", ExpectedResult = "<em>abc__abc__abc</em> ")]
+        [TestCase("_y z x__y z x__y z x_", ExpectedResult = "<em>y z x__y z x__y z x</em>")]
+        [TestCase("_y z x__y z x__y z x", ExpectedResult = "_y z x<strong>y z x</strong>y z x")]
+        public string MdRenderer_StringWithBoldInsideItalicGiven_BoldTagsAreNotReplaced(string input)
+        {
+            var result = renderer.Render(input);
 
-			return result;
-		}
+            return result;
+        }
 
-		[TestCase("__1__", ExpectedResult = "__1__")]
+        [TestCase("__1__", ExpectedResult = "__1__")]
 		[TestCase("xy__45__y", ExpectedResult = "xy__45__y")]
 		[TestCase("_6_", ExpectedResult = "_6_")]
 		[TestCase("xy_78_y", ExpectedResult = "xy_78_y")]
 		[TestCase("__12__c_abc_", ExpectedResult = "__12__c<em>abc</em>")]
-		[TestCase("__0__ __abc__ ", ExpectedResult = "__0__ <strong>abc</strong> ")]
+		[TestCase("0__1__abc", ExpectedResult = "0__1__abc")]
 		public string MdRenderer_StringWithTagsAroundDigitsGiven_TagsAreNotReplaced(string input)
 		{
-			var result = mdRenderer.Render(input);
+			var result = renderer.Render(input);
 
 			return result;
 		}
@@ -112,7 +114,7 @@ namespace Markdown
 		[TestCase("mn__kj_l", ExpectedResult = "mn__kj_l")]
 		public string MdRenderer_StringWithUnpairedTagsGiven_TagsAreNotReplaced(string input)
 		{
-			var result = mdRenderer.Render(input);
+			var result = renderer.Render(input);
 
 			return result;
 		}
@@ -123,7 +125,7 @@ namespace Markdown
 		[TestCase("mn__ abc__l", ExpectedResult = "mn__ abc__l")]
 		public string MdRenderer_StringWithInvalidOpeningTagsGiven_TagsAreNotReplaced(string input)
 		{
-			var result = mdRenderer.Render(input);
+			var result = renderer.Render(input);
 
 			return result;
 		}
@@ -134,38 +136,93 @@ namespace Markdown
 		[TestCase("mn__abc __l", ExpectedResult = "mn__abc __l")]
 		public string MdRenderer_StringWithInvalidClosingTagsGiven_TagsAreNotReplaced(string input)
 		{
-			var result = mdRenderer.Render(input);
+			var result = renderer.Render(input);
 
 			return result;
 		}
 
 		[TestCase("__ab__c_abc_", ExpectedResult = "<strong>ab</strong>c<em>abc</em>")]
-		//[TestCase("_y___x__", ExpectedResult = "<em>y</em><strong>x</strong>")] behavior???
 		[TestCase("__d__ _b_ ", ExpectedResult = "<strong>d</strong> <em>b</em> ")]
 		[TestCase("__yzx__ _yzx_ __yzx__", ExpectedResult = "<strong>yzx</strong> <em>yzx</em> <strong>yzx</strong>")]
 		public string MdRenderer_StringWithMultipleTagsGiven_TagsAreReplaced(string input)
 		{
-			var result = mdRenderer.Render(input);
+			var result = renderer.Render(input);
 
 			return result;
 		}
-		[Test]
-		public void Performance_Test()
-		{
-			var builder = new StringBuilder();
-			var test = "_x_ ";
-			for (var i = 0; i < 25000; i++)
-				builder.Append(test);
-			var text = builder.ToString();
-			var sw = Stopwatch.StartNew();
-			foreach (var symbol in text)
-			{
-			}
-			var linearTime = sw.Elapsed;
-			sw.Restart();
-			mdRenderer.Render(text);
-			var resultTime = sw.Elapsed;
-			Assert.AreEqual(linearTime, resultTime);
-		}
-	}
+
+        //[TestCase(100, 10000, "1")]
+        //[TestCase(100, 10000, "__")]
+        [TestCase(100, 10000, "_a_")]
+        [TestCase(100, 10000, "__a__")]
+        public void MdRenderer_ShouldHave_LinearPerformance(int count1, int count2, string pattern)
+        {
+            const int expectedCoef = 5; 
+
+            var text1 = CreateText(pattern, count1);
+            var text2 = CreateText(pattern, count2);
+            var refTime1 = MeasureReferenceTime(text1);
+            var refTime2 = MeasureReferenceTime(text2);
+
+            var time1 = MeasureWorkTime(text1);
+            var coef1 = time1 / (double) refTime1;
+
+            var time2 = MeasureWorkTime(text2);
+            var coef2 = time2 / (double) refTime2;
+
+            var result = Math.Max(coef1, coef2) / Math.Min(coef1, coef2);
+
+            Assert.Less(result, expectedCoef);
+        }
+
+	    private string CreateText(string pattern, double length)
+	    {
+	        var builder = new StringBuilder();
+            while (builder.Length < length)
+	            builder.Append(pattern);
+	        return builder.ToString();
+	    }
+
+        private long MeasureWorkTime(string text)
+        {
+            var sw = new Stopwatch();
+            var testRenderer = new Renderer();
+
+            // warm up 
+            testRenderer.Render(text);
+            testRenderer.Render(text);
+            testRenderer.Render(text);
+
+            // clean up
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            sw.Start();
+            testRenderer.Render(text);
+            sw.Stop();
+
+            return sw.ElapsedTicks;
+        }
+
+        private long MeasureReferenceTime(string text)
+        {
+            var sw = new Stopwatch();
+
+            // clean up
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            sw.Start();
+            foreach (var symbol in text)
+            {
+                var hash = symbol.GetHashCode();
+                var test = hash.GetHashCode();
+            }
+            sw.Stop();
+
+            return sw.ElapsedTicks;
+        }
+    }
 }
