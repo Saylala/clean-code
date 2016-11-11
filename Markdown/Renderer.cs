@@ -1,95 +1,172 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace Markdown
 {
-	class Md
-	{
-		public string Render(string markdownText)
-		{
-			var tags = GetTags(markdownText);
-			return ReplaceTags(markdownText, tags);
-		}
+    class Renderer
+    {
+        private int bias;
+        private int currentPosition;
+        private StringBuilder builder;
+        private readonly IMarkupLanguage language;
 
-		private IEnumerable<ITag> GetTags(string text)
-		{
-			var position = 0;
-			var openingTags = new Stack<ITag>();
-			var tags = new List<ITag>();          //new SortedList<Tuple<string, int>, int>();???
-			var tagConstructors = TagTables.TagConstructors;
+        private readonly Dictionary<string, string> openingHtlmTags = new Dictionary<string, string>
+        {
+            { "_", "<em>" },
+            { "__", "<strong>" }
+        };
 
-			while (position < text.Length)
-			{
-				var parsedTag = TryParseTag(text, position);
-				if (parsedTag == null)
-				{
-					position++;
-					continue;
-				}
+        private readonly Dictionary<string, string> closingHtlmTags = new Dictionary<string, string>
+        {
+            { "_", "</em>" },
+            { "__", "</strong>" }
+        };
 
-				var isOpeningTag = openingTags.Count == 0 || openingTags.Peek().Tag != parsedTag;
-				var tag = tagConstructors[parsedTag].Invoke(parsedTag, position, isOpeningTag);
-				position += parsedTag.Length;
+        public Renderer()
+        {
+            language = new Markdown();
+        }
 
-				ManageTags(text, tag, openingTags, tags);
-			}
-			return tags.OrderByDescending(x => x.Position);
-		}
+        public string Render(string text)
+        {
+            currentPosition = 0;
+            bias = 0;
+            builder = new StringBuilder(text);
+            var length = text.Length;
 
-		private string TryParseTag(string text, int position)
-		{
-			string result = null;
-			foreach (var tag in TagTables.OpeningHtlmTags.Keys.OrderBy(x => x.Length))
-			{
-				if (position + tag.Length > text.Length)
-					continue;
-				var subStr = text.Substring(position, tag.Length);
-				if (subStr == tag)
-					result = tag;
-			}
-			return result;
-		}
+            while (currentPosition < length)
+            {
+                var openingTag = GetNextTag(text);
+                if (openingTag == null || !language.IsTagWithValidSurroundings(text, openingTag, true))
+                    continue;
+                RenderNext(text, openingTag);
+            }
 
-		private void ManageTags(string text, ITag tag, Stack<ITag> openingTags, List<ITag> tags)
-		{
-			if (tag.IsEscaped(text))
-			{
-				tags.Add(tag.GetUnescapedTag());
-				return;
-			}
-			if (!tag.IsValid(text, openingTags))
-				return;
-			if (tag.IsOpeningTag)
-				openingTags.Push(tag);
-			else
-			{
-				var openingTag = openingTags.Pop();
-				if (!IsValidTagPair(text, openingTag, tag))
-					return;
-				tags.Add(tag);
-				tags.Add(openingTag);
-			}
-		}
+            return builder.ToString();
+        }
 
-		private bool IsValidTagPair(string text, ITag openingTag, ITag closingTag)
-		{
-			var textInTags = text.Substring(openingTag.Position, closingTag.Position - openingTag.Position);
-			return !textInTags.Any(char.IsDigit);
-		}
+        private void RenderNext(string text, Tag openingTag)
+        {
+            var length = text.Length;
+            var nestedTags = new List<Tuple<Tag, Tag>>();
+            while (currentPosition < length)
+            {
+                var tag = GetNextTag(text);
+                if (tag == null)
+                    continue;
 
-		private string ReplaceTags(string text, IEnumerable<ITag> tags)
-		{
-			var builder = new StringBuilder(text);
-			foreach (var tag in tags)
-				ReplaceTag(builder, tag);
-			return builder.ToString();
-		}
+                if (tag.Representation == openingTag.Representation)
+                {
+                    if (!language.IsTagWithValidSurroundings(text, tag, false))
+                        continue;
+                    WrapInTag(openingTag.Position, tag.Position, tag);
+                    RenderTags(nestedTags, tag, true);
+                    return;
+                }
+                if (language.IsTagWithValidSurroundings(text, tag, true))
+                    GetNestedTags(text, tag, openingTag, nestedTags);
+            }
+            RenderTags(nestedTags, null, false);
+        }
 
-		private void ReplaceTag(StringBuilder builder, ITag tag)
-		{
-			builder.Remove(tag.Position, tag.Tag.Length);
-			builder.Insert(tag.Position, tag.Representation);
-		}
-	}
+        private void GetNestedTags(string text, Tag openingTag, Tag surroundingTag, List<Tuple<Tag, Tag>> nestedTags)
+        {
+            var length = text.Length;
+            while (currentPosition < length)
+            {
+                var tag = GetNextTag(text);
+                if (tag == null)
+                    continue;
+
+                if (tag.Representation == surroundingTag.Representation)
+                {
+                    if (!language.IsTagWithValidSurroundings(text, tag, false))
+                        continue;
+                    currentPosition -= tag.Representation.Length;
+                    return;
+                }
+
+                if (tag.Representation != openingTag.Representation) continue;
+                nestedTags.Add(Tuple.Create(openingTag, tag));
+                return;
+            }
+        }
+
+        private void RenderTags(List<Tuple<Tag, Tag>> tags, Tag surroundingTag, bool isNested)
+        {
+            foreach (var pair in tags)
+            {
+                if (isNested && !language.CanTagBeNestedInside(pair.Item1, surroundingTag))
+                    continue;
+                if (!isNested)
+                    WrapInTag(pair.Item1.Position, pair.Item2.Position, pair.Item1);
+                else
+                {
+                    var nestedBias = surroundingTag.Representation.Length - openingHtlmTags[surroundingTag.Representation].Length - 1;
+                    WrapInTag(pair.Item1.Position + nestedBias, pair.Item2.Position + nestedBias, pair.Item1);
+                }
+            }
+        }
+
+        private Tag GetNextTag(string text)
+        {
+            var length = text.Length;
+            var hasValidContents = true;
+            while (currentPosition < length)
+            {
+                var parsedTag = TryParseTag(text, currentPosition);
+                if (parsedTag == null)
+                {
+                    hasValidContents = language.IsValidTagContents(text[currentPosition]);
+                    currentPosition++;
+                    continue;
+                }
+
+                var tag = language.GetTagFromString(parsedTag, currentPosition);
+                currentPosition += parsedTag.Length;
+
+                var isEscaped = language.IsEscapedTag(tag, text);
+                if (hasValidContents && !isEscaped)
+                    return tag;
+                if (isEscaped)
+                    UnescapeTag(tag);
+                hasValidContents = true;
+            }
+            return null;
+        }
+
+        private string TryParseTag(string text, int position)
+        {
+            string result = null;
+            for (var length = 1; position + length < text.Length + 1; length++)
+            {
+                var subStr = text.Substring(position, length);
+                if (!language.HasTag(subStr))
+                    break;
+                result = subStr;
+            }
+            return result;
+        }
+
+        private void UnescapeTag(Tag tag)
+        {
+            var pos = tag.Position - 1 + bias;
+            builder.Remove(pos, 1);
+            bias--;
+        }
+
+        private void WrapInTag(int from, int to, Tag tag)
+        {
+            var opening = openingHtlmTags[tag.Representation];
+            var closing = closingHtlmTags[tag.Representation];
+
+            builder.Remove(to + bias, tag.Representation.Length);
+            builder.Insert(to + bias, closing);
+            builder.Remove(from + bias, tag.Representation.Length);
+            builder.Insert(from + bias, opening);
+
+            bias += opening.Length + closing.Length - 2 * tag.Representation.Length;
+        }
+    }
 }
