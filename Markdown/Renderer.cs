@@ -23,9 +23,9 @@ namespace Markdown
             { "__", "</strong>" }
         };
 
-        public Renderer()
+        public Renderer(IMarkupLanguage language)
         {
-            language = new Markdown();
+            this.language = language;
         }
 
         public string Render(string text)
@@ -70,7 +70,7 @@ namespace Markdown
             RenderTags(nestedTags, null, false);
         }
 
-        private void GetNestedTags(string text, Tag openingTag, Tag surroundingTag, List<Tuple<Tag, Tag>> nestedTags)
+        private void GetNestedTags(string text, Tag openingTag, Tag surroundingTag, List<Tuple<Tag, Tag>> output)
         {
             var length = text.Length;
             while (currentPosition < length)
@@ -88,7 +88,7 @@ namespace Markdown
                 }
 
                 if (tag.Representation != openingTag.Representation) continue;
-                nestedTags.Add(Tuple.Create(openingTag, tag));
+                output.Add(Tuple.Create(openingTag, tag));
                 return;
             }
         }

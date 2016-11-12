@@ -13,7 +13,8 @@ namespace Markdown
 		[SetUp]
 		public void SetUp()
 		{
-			renderer = new Renderer();
+            var language = new Markdown();
+			renderer = new Renderer(language);
 		}
 
 		[Test]
@@ -44,9 +45,7 @@ namespace Markdown
 		[TestCase("xy_zx_y", ExpectedResult = "xy<em>zx</em>y")]
 		public string MdRenderer_StringWithItalicGiven_ItalicTagsAreReplaced(string input)
 		{
-			var result = renderer.Render(input);
-
-			return result;
+			return renderer.Render(input); 
 		}
 
 		[TestCase(@"\__ab\__c\_abc\_", ExpectedResult = "__ab__c_abc_")]
@@ -56,9 +55,7 @@ namespace Markdown
 		[TestCase(@"\_ab\_c", ExpectedResult = "_ab_c")]
 		public string MdRenderer_StringWithEscapedTags_TagsAreNotReplaced(string input)
 		{
-			var result = renderer.Render(input);
-
-			return result;
+			return renderer.Render(input);
 		}
 
 		[TestCase("__ab__c", ExpectedResult = "<strong>ab</strong>c")]
@@ -67,9 +64,7 @@ namespace Markdown
 		[TestCase("xy__zx__y", ExpectedResult = "xy<strong>zx</strong>y")]
 		public string MdRenderer_StringWithBoldGiven_BoldTagsAreReplaced(string input)
 		{
-			var result = renderer.Render(input);
-
-			return result;
+			return renderer.Render(input);
 		}
 
         [TestCase("__ab_abc_ab__", ExpectedResult = "<strong>ab<em>abc</em>ab</strong>")]
@@ -78,9 +73,7 @@ namespace Markdown
         [TestCase("__y z x_y z x_y z x__", ExpectedResult = "<strong>y z x<em>y z x</em>y z x</strong>")]
         public string MdRenderer_StringWithItalicInsideBoldGiven_AllTagsAreReplaced(string input)
         {
-            var result = renderer.Render(input);
-
-            return result;
+            return renderer.Render(input);
         }
 
         [TestCase("_ab__abc__ab_", ExpectedResult = "<em>ab__abc__ab</em>")]
@@ -90,9 +83,7 @@ namespace Markdown
         [TestCase("_y z x__y z x__y z x", ExpectedResult = "_y z x<strong>y z x</strong>y z x")]
         public string MdRenderer_StringWithBoldInsideItalicGiven_BoldTagsAreNotReplaced(string input)
         {
-            var result = renderer.Render(input);
-
-            return result;
+            return renderer.Render(input);
         }
 
         [TestCase("__1__", ExpectedResult = "__1__")]
@@ -103,10 +94,8 @@ namespace Markdown
 		[TestCase("0__1__abc", ExpectedResult = "0__1__abc")]
 		public string MdRenderer_StringWithTagsAroundDigitsGiven_TagsAreNotReplaced(string input)
 		{
-			var result = renderer.Render(input);
-
-			return result;
-		}
+            return renderer.Render(input);
+        }
 
 		[TestCase("__ab_c", ExpectedResult = "__ab_c")]
 		[TestCase("__x_", ExpectedResult = "__x_")]
@@ -114,10 +103,8 @@ namespace Markdown
 		[TestCase("mn__kj_l", ExpectedResult = "mn__kj_l")]
 		public string MdRenderer_StringWithUnpairedTagsGiven_TagsAreNotReplaced(string input)
 		{
-			var result = renderer.Render(input);
-
-			return result;
-		}
+            return renderer.Render(input);
+        }
 
 		[TestCase("__ tags__c", ExpectedResult = "__ tags__c")]
 		[TestCase("_ tags_", ExpectedResult = "_ tags_")]
@@ -125,10 +112,8 @@ namespace Markdown
 		[TestCase("mn__ abc__l", ExpectedResult = "mn__ abc__l")]
 		public string MdRenderer_StringWithInvalidOpeningTagsGiven_TagsAreNotReplaced(string input)
 		{
-			var result = renderer.Render(input);
-
-			return result;
-		}
+            return renderer.Render(input);
+        }
 
 		[TestCase("__tags __c", ExpectedResult = "__tags __c")]
 		[TestCase("_tags _", ExpectedResult = "_tags _")]
@@ -136,28 +121,24 @@ namespace Markdown
 		[TestCase("mn__abc __l", ExpectedResult = "mn__abc __l")]
 		public string MdRenderer_StringWithInvalidClosingTagsGiven_TagsAreNotReplaced(string input)
 		{
-			var result = renderer.Render(input);
-
-			return result;
-		}
+            return renderer.Render(input);
+        }
 
 		[TestCase("__ab__c_abc_", ExpectedResult = "<strong>ab</strong>c<em>abc</em>")]
 		[TestCase("__d__ _b_ ", ExpectedResult = "<strong>d</strong> <em>b</em> ")]
 		[TestCase("__yzx__ _yzx_ __yzx__", ExpectedResult = "<strong>yzx</strong> <em>yzx</em> <strong>yzx</strong>")]
 		public string MdRenderer_StringWithMultipleTagsGiven_TagsAreReplaced(string input)
 		{
-			var result = renderer.Render(input);
+            return renderer.Render(input);
+        }
 
-			return result;
-		}
-
-        //[TestCase(100, 10000, "1")]
-        //[TestCase(100, 10000, "__")]
+        [TestCase(100, 10000, "1")]
+        [TestCase(100, 10000, "__")]
         [TestCase(100, 10000, "_a_")]
         [TestCase(100, 10000, "__a__")]
         public void MdRenderer_ShouldHave_LinearPerformance(int count1, int count2, string pattern)
         {
-            const int expectedCoef = 5; 
+            const int expectedCoef = 3; 
 
             var text1 = CreateText(pattern, count1);
             var text2 = CreateText(pattern, count2);
@@ -186,12 +167,11 @@ namespace Markdown
         private long MeasureWorkTime(string text)
         {
             var sw = new Stopwatch();
-            var testRenderer = new Renderer();
 
             // warm up 
-            testRenderer.Render(text);
-            testRenderer.Render(text);
-            testRenderer.Render(text);
+            renderer.Render(text);
+            renderer.Render(text);
+            renderer.Render(text);
 
             // clean up
             GC.Collect();
@@ -199,7 +179,7 @@ namespace Markdown
             GC.Collect();
 
             sw.Start();
-            testRenderer.Render(text);
+            renderer.Render(text);
             sw.Stop();
 
             return sw.ElapsedTicks;
