@@ -1,14 +1,37 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Markdown
 {
-    class Markdown : IMarkupLanguage
+    public class Markdown : IMarkupLanguage
     {
         private readonly HashSet<string> tags = new HashSet<string>
         {
             "_",
-            "__"
+            "__",
+            "[",
+            "]"
         };
+
+        private readonly Dictionary<string, string> tagPairs = new Dictionary<string, string>
+        {
+            {"_", "_"},
+            {"__", "__"},
+            {"[", "]" }
+        };
+
+        public ImmutableDictionary<string, string> OpeningHtmlTags { get; } = new Dictionary<string, string>
+        {
+            { "_", "<em>" },
+            { "__", "<strong>" }
+        }.ToImmutableDictionary();
+
+        public ImmutableDictionary<string, string> ClosingHtmlTags { get; } = new Dictionary<string, string>
+        {
+            { "_", "</em>" },
+            { "__", "</strong>" }
+        }.ToImmutableDictionary();
+
         public Tag GetTagFromString(string tag, int position)
         {
             return new Tag(tag, position);
@@ -19,9 +42,19 @@ namespace Markdown
             return tags.Contains(tag);
         }
 
+        public bool ArePairedTags(Tag opening, Tag closing)
+        {
+            return closing.Representation == tagPairs[opening.Representation];
+        }
+
         public bool IsValidTagContents(char symbol)
         {
             return !char.IsDigit(symbol);
+        }
+
+        public bool IsContentRestrictied(Tag tag)
+        {
+            return tag.Representation == "_" || tag.Representation == "__";
         }
 
         public bool IsTagWithValidSurroundings(string text, Tag tag, bool isOpeningTag)
