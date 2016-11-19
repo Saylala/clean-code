@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace Markdown
 {
 	[TestFixture]
-	class RendererTests
+	public class RendererTests
 	{
 		private Renderer renderer;
 
@@ -203,6 +203,15 @@ namespace Markdown
             sw.Stop();
 
             return sw.ElapsedTicks;
+        }
+
+        [TestCase("[Test](http://test.test/)", ExpectedResult = "<a href=\"http://test.test/\">Test</a>")]
+        [TestCase("[]()", ExpectedResult = "<a href=\"\"></a>")]
+        [TestCase("[1](1)", ExpectedResult = "<a href=\"1\">1</a>")]
+        [TestCase("[2](http://2.2/)", ExpectedResult = "<a href=\"http://2.2/\">Test</a>")]
+        public string MdRenderer_StringWithLinks_TagsAreReplaced(string input)
+        {
+            return renderer.Render(input);
         }
     }
 }
