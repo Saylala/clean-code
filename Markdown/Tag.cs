@@ -1,6 +1,6 @@
 ﻿namespace Markdown
 {
-    class Tag
+    public class Tag
     {
         public string Representation { get; }
         public int Position { get; }

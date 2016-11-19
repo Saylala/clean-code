@@ -4,24 +4,12 @@ using System.Text;
 
 namespace Markdown
 {
-    class Renderer
+    public class Renderer
     {
         private int bias;
         private int currentPosition;
         private StringBuilder builder;
         private readonly IMarkupLanguage language;
-
-        private readonly Dictionary<string, string> openingHtlmTags = new Dictionary<string, string>
-        {
-            { "_", "<em>" },
-            { "__", "<strong>" }
-        };
-
-        private readonly Dictionary<string, string> closingHtlmTags = new Dictionary<string, string>
-        {
-            { "_", "</em>" },
-            { "__", "</strong>" }
-        };
 
         public Renderer(IMarkupLanguage language)
         {
@@ -56,7 +44,7 @@ namespace Markdown
                 if (tag == null)
                     continue;
 
-                if (tag.Representation == openingTag.Representation)
+                if (language.ArePairedTags(openingTag, tag))
                 {
                     if (!language.IsTagWithValidSurroundings(text, tag, false))
                         continue;
@@ -93,7 +81,7 @@ namespace Markdown
             }
         }
 
-        private void RenderTags(List<Tuple<Tag, Tag>> tags, Tag surroundingTag, bool isNested)
+        private void RenderTags(IEnumerable<Tuple<Tag, Tag>> tags, Tag surroundingTag, bool isNested)
         {
             foreach (var pair in tags)
             {
@@ -103,7 +91,9 @@ namespace Markdown
                     WrapInTag(pair.Item1.Position, pair.Item2.Position, pair.Item1);
                 else
                 {
-                    var nestedBias = surroundingTag.Representation.Length - openingHtlmTags[surroundingTag.Representation].Length - 1;
+                    var oldLength = surroundingTag.Representation.Length;
+                    var newLength = language.OpeningHtmlTags[surroundingTag.Representation].Length;
+                    var nestedBias = oldLength - newLength - 1;
                     WrapInTag(pair.Item1.Position + nestedBias, pair.Item2.Position + nestedBias, pair.Item1);
                 }
             }
@@ -127,7 +117,7 @@ namespace Markdown
                 currentPosition += parsedTag.Length;
 
                 var isEscaped = language.IsEscapedTag(tag, text);
-                if (hasValidContents && !isEscaped)
+                if ((hasValidContents || !language.IsContentRestrictied(tag)) && !isEscaped)
                     return tag;
                 if (isEscaped)
                     UnescapeTag(tag);
@@ -158,8 +148,8 @@ namespace Markdown
 
         private void WrapInTag(int from, int to, Tag tag)
         {
-            var opening = openingHtlmTags[tag.Representation];
-            var closing = closingHtlmTags[tag.Representation];
+            var opening = language.OpeningHtmlTags[tag.Representation];
+            var closing = language.ClosingHtmlTags[tag.Representation];
 
             builder.Remove(to + bias, tag.Representation.Length);
             builder.Insert(to + bias, closing);
