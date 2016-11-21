@@ -205,13 +205,49 @@ namespace Markdown
             return sw.ElapsedTicks;
         }
 
-        [TestCase("[Test](http://test.test/)", ExpectedResult = "<a href=\"http://test.test/\">Test</a>")]
+        [TestCase("[Test](http://test.test/)_a_", ExpectedResult = "<a href=\"http://test.test/\">Test</a><em>a</em>")]
         [TestCase("[]()", ExpectedResult = "<a href=\"\"></a>")]
         [TestCase("[1](1)", ExpectedResult = "<a href=\"1\">1</a>")]
-        [TestCase("[2](http://2.2/)", ExpectedResult = "<a href=\"http://2.2/\">Test</a>")]
+        [TestCase("[Test](http://2.2/)", ExpectedResult = "<a href=\"http://2.2/\">Test</a>")]
         public string MdRenderer_StringWithLinks_TagsAreReplaced(string input)
         {
             return renderer.Render(input);
+        }
+
+        [TestCase("[Test](test)_a_", "http://test.test/", ExpectedResult = "<a href=\"http://test.test/test\">Test</a><em>a</em>")]
+        [TestCase("[]()", "http://test.test/", ExpectedResult = "<a href=\"http://test.test/\"></a>")]
+        [TestCase("[1](1)", "test", ExpectedResult = "<a href=\"test1\">1</a>")]
+        [TestCase("[Test](2)", "http://2.2/", ExpectedResult = "<a href=\"http://2.2/2\">Test</a>")]
+        public string MdRenderer_StringWithRelativeLinks_TagsAreReplaced(string input, string baseUrl)
+        {
+            var markdown = new Markdown(baseUrl: baseUrl);
+            var testRenderer = new Renderer(markdown);
+
+            return testRenderer.Render(input);
+        }
+
+        [TestCase("_ab_c", "a", ExpectedResult = "<em style=\"a\">ab</em>c")]
+        [TestCase("__ab__c", "b", ExpectedResult = "<strong style=\"b\">ab</strong>c")]
+        [TestCase("__ab__c_abc_", "c", ExpectedResult = "<strong style=\"c\">ab</strong>c<em style=\"c\">abc</em>")]
+        [TestCase("[]()", "d", ExpectedResult = "<a href=\"\" style=\"d\"></a>")]
+        public string MdRenderer_StyleSetted_TagsAreReplacedWithStyle(string input, string style)
+        {
+            var markdown = new Markdown(style);
+            var testRenderer = new Renderer(markdown);
+
+            return testRenderer.Render(input);
+        }
+
+        [TestCase("a", ExpectedResult = "<p>a</p>")]
+        [TestCase("a\n\na", ExpectedResult = "<p>a</p><p>a</p>")]
+        [TestCase("\na\n", ExpectedResult = "<p>a</p>")]
+        [TestCase("\n\na\n\n", ExpectedResult = "<p>a</p>")]
+        public string MdRenderer_StringWithParagraphs_TagsAreReplaced(string input)
+        {
+            var markdown = new Markdown(paragraphsEnabled: true);
+            var testRenderer = new Renderer(markdown);
+
+            return testRenderer.Render(input);
         }
     }
 }
