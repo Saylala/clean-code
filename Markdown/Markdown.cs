@@ -1,16 +1,39 @@
 ﻿using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace Markdown
 {
     public class Markdown : IMarkupLanguage
     {
+        public Markdown(string style = null, string baseUrl = null, bool paragraphsEnabled = false)
+        {
+            this.baseUrl = baseUrl;
+            ParagraphsEnabled = paragraphsEnabled;
+
+            var styleString = style == null ? "" : $@" style=""{style}""";
+
+            var openingTags = new Dictionary<string, string>
+            {
+                {"_", "<em{0}>"},
+                {"__", "<strong{0}>"},
+                {"\n", "<p{0}>"}
+            };
+
+            OpeningHtmlTags = openingTags
+                .ToDictionary(x => x.Key, x => string.Format(x.Value, styleString))
+                .ToImmutableDictionary();
+
+            htmlUrlTag = $"<a href=\"{{1}}\"{styleString}>{{0}}</a>";
+        }
+
         private readonly HashSet<string> tags = new HashSet<string>
         {
             "_",
             "__",
             "[",
-            "]"
+            "]",
+            "\n"
         };
 
         private readonly Dictionary<string, string> tagPairs = new Dictionary<string, string>
@@ -20,17 +43,19 @@ namespace Markdown
             {"[", "]" }
         };
 
-        public ImmutableDictionary<string, string> OpeningHtmlTags { get; } = new Dictionary<string, string>
-        {
-            { "_", "<em>" },
-            { "__", "<strong>" }
-        }.ToImmutableDictionary();
+        public ImmutableDictionary<string, string> OpeningHtmlTags { get; }
 
         public ImmutableDictionary<string, string> ClosingHtmlTags { get; } = new Dictionary<string, string>
         {
             { "_", "</em>" },
-            { "__", "</strong>" }
+            { "__", "</strong>" },
+            { "\n", "</p>" }
         }.ToImmutableDictionary();
+
+        public bool ParagraphsEnabled { get; }
+
+        private readonly string htmlUrlTag;
+        private readonly string baseUrl;
 
         public Tag GetTagFromString(string tag, int position)
         {
@@ -75,6 +100,12 @@ namespace Markdown
         public bool CanTagBeNestedInside(Tag tag, Tag other)
         {
             return tag.Representation == "_" && other.Representation == "__";
+        }
+
+        public string WrapInHtmlUrlTag(string title, string url)
+        {
+            var resultUrl = baseUrl == null ? url : baseUrl + url;
+            return string.Format(htmlUrlTag, title, resultUrl);
         }
     }
 }

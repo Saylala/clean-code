@@ -22,17 +22,53 @@ namespace Markdown
             bias = 0;
             builder = new StringBuilder(text);
             var length = text.Length;
+            var previousParagraph = 0;
+
+            while (currentPosition < length)
+            {
+                SkipEmtyLines(text, currentPosition);
+                if (currentPosition >= length)
+                    break;
+                RenderNextParagraph(text);
+                if (language.ParagraphsEnabled)
+                    WrapInParagraph(previousParagraph - bias, currentPosition, "\n");
+                previousParagraph = currentPosition;
+            }
+
+            return builder.ToString();
+        }
+
+        private void SkipEmtyLines(string text, int start)
+        {
+            var currentLine = currentPosition;
+            var length = text.Length;
+            while (currentPosition < length && char.IsWhiteSpace(text[currentPosition]))
+            {
+                if (text[currentPosition] == '\n')
+                    currentLine = currentPosition + 1;
+                currentPosition++;
+            }
+            if (currentLine == start)
+                return;
+            builder.Remove(start + bias, currentLine - start);
+            bias += start - currentLine;
+        }
+
+        private void RenderNextParagraph(string text)
+        {
+            var length = text.Length;
 
             while (currentPosition < length)
             {
                 var openingTag = GetNextTag(text);
                 if (openingTag == null || !language.IsTagWithValidSurroundings(text, openingTag, true))
                     continue;
+                if (openingTag.Representation == "\n")
+                    return;
                 RenderNext(text, openingTag);
             }
-
-            return builder.ToString();
         }
+
 
         private void RenderNext(string text, Tag openingTag)
         {
@@ -43,12 +79,19 @@ namespace Markdown
                 var tag = GetNextTag(text);
                 if (tag == null)
                     continue;
+                if (tag.Representation == "\n")
+                    return;
 
                 if (language.ArePairedTags(openingTag, tag))
                 {
                     if (!language.IsTagWithValidSurroundings(text, tag, false))
                         continue;
-                    WrapInTag(openingTag.Position, tag.Position, tag);
+                    if (!language.OpeningHtmlTags.ContainsKey(openingTag.Representation))
+                    {
+                        RenderUrl(text, openingTag, tag);
+                        return;
+                    }
+                    WrapInTag(openingTag.Position, tag.Position, tag.Representation);
                     RenderTags(nestedTags, tag, true);
                     return;
                 }
@@ -88,13 +131,13 @@ namespace Markdown
                 if (isNested && !language.CanTagBeNestedInside(pair.Item1, surroundingTag))
                     continue;
                 if (!isNested)
-                    WrapInTag(pair.Item1.Position, pair.Item2.Position, pair.Item1);
+                    WrapInTag(pair.Item1.Position, pair.Item2.Position, pair.Item1.Representation);
                 else
                 {
                     var oldLength = surroundingTag.Representation.Length;
                     var newLength = language.OpeningHtmlTags[surroundingTag.Representation].Length;
                     var nestedBias = oldLength - newLength - 1;
-                    WrapInTag(pair.Item1.Position + nestedBias, pair.Item2.Position + nestedBias, pair.Item1);
+                    WrapInTag(pair.Item1.Position + nestedBias, pair.Item2.Position + nestedBias, pair.Item1.Representation);
                 }
             }
         }
@@ -114,6 +157,8 @@ namespace Markdown
                 }
 
                 var tag = language.GetTagFromString(parsedTag, currentPosition);
+                if (parsedTag == "\n")
+                    return tag;
                 currentPosition += parsedTag.Length;
 
                 var isEscaped = language.IsEscapedTag(tag, text);
@@ -146,17 +191,54 @@ namespace Markdown
             bias--;
         }
 
-        private void WrapInTag(int from, int to, Tag tag)
+        private void RenderUrl(string text, Tag opening, Tag closing)
         {
-            var opening = language.OpeningHtmlTags[tag.Representation];
-            var closing = language.ClosingHtmlTags[tag.Representation];
+            var url = GetUrl(text, currentPosition);
+            if (url == null)
+                return;
+            var title = text.Substring(opening.Position + 1, closing.Position - opening.Position - 1);
+            var newRepr = language.WrapInHtmlUrlTag(title, url);
+            builder.Remove(opening.Position, currentPosition+1);
+            builder.Insert(opening.Position, newRepr);
+            bias += newRepr.Length - 1 - currentPosition + opening.Position;
+        }
 
-            builder.Remove(to + bias, tag.Representation.Length);
+        private string GetUrl(string text, int from)
+        {
+            if (text[from] != '(')
+                return null;
+            while (currentPosition < text.Length)
+            {
+                if (text[currentPosition] == ')')
+                    return text.Substring(from + 1, currentPosition - from - 1);
+                currentPosition++;
+            }
+            return null;
+        }
+
+
+        private void WrapInParagraph(int from, int to, string tag)
+        {
+            var opening = language.OpeningHtmlTags[tag];
+            var closing = language.ClosingHtmlTags[tag];
+
             builder.Insert(to + bias, closing);
-            builder.Remove(from + bias, tag.Representation.Length);
             builder.Insert(from + bias, opening);
 
-            bias += opening.Length + closing.Length - 2 * tag.Representation.Length;
+            bias += opening.Length + closing.Length;
+        }
+
+        private void WrapInTag(int from, int to, string tag)
+        {
+            var opening = language.OpeningHtmlTags[tag];
+            var closing = language.ClosingHtmlTags[tag];
+
+            builder.Remove(to + bias, tag.Length);
+            builder.Insert(to + bias, closing);
+            builder.Remove(from + bias, tag.Length);
+            builder.Insert(from + bias, opening);
+
+            bias += opening.Length + closing.Length - 2 * tag.Length;
         }
     }
 }
