@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -10,7 +9,7 @@ namespace Markdown
         private string htmlUrlTag;
         private readonly string baseUrl;
 
-        private readonly HashSet<string> tags = new HashSet<string>
+        private readonly HashSet<string> supportedTags = new HashSet<string>
         {
             "_",
             "__",
@@ -32,9 +31,22 @@ namespace Markdown
             {"[", "]" }
         };
 
-        public ImmutableDictionary<string, string> OpeningHtmlTags { get; set; }
+        public ImmutableDictionary<string, string> OpeningHtmlTags { get; private set; }
 
-        public ImmutableDictionary<string, string> ClosingHtmlTags { get; } = new Dictionary<string, string>
+        private Dictionary<string, string> openingTags = new Dictionary<string, string>
+        {
+            {"_", "<em{0}>"},
+            {"__", "<strong{0}>"},
+            {"\n", "<p{0}>"},
+            {"#", "<h1{0}>"},
+            {"##", "<h2{0}>"},
+            {"###", "<h3{0}>"},
+            {"####", "<h4{0}>"},
+            {"#####", "<h5{0}>"},
+            {"######", "<h6{0}>"}
+        };
+
+        public ImmutableDictionary<string, string> ClosingHtmlTags { get; private set; } = new Dictionary<string, string>
         {
             { "_", "</em>" },
             { "__", "</strong>" },
@@ -47,13 +59,13 @@ namespace Markdown
             {"######", "</h6>" }
         }.ToImmutableDictionary();
 
-        public Tuple<string, string> CodeBlockTags { get; set; }
-        public Tuple<string, string> ListTags { get; set; }
-        public Tuple<string, string> ListEntryTag { get; set; }
-        public Tuple<string, string> UrlTags { get; set; }
-        public Tuple<string, string> BaseTags { get; set; }
-        public Tuple<string, string> ParagraphTags { get; set; }
-        public string StringDelimiter => "\n";
+        public TagPair CodeBlockTags { get; private set; }
+        public TagPair ListTags { get; private set; }
+        public TagPair ListEntryTag { get; private set; }
+        public TagPair UrlTags { get; private set; }
+        public TagPair BaseTags { get; private set; }
+        public TagPair ParagraphTags { get; private set; }
+        private string cssStyle = "";
 
         public Markdown(string style = null, string baseUrl = null)
         {
@@ -64,12 +76,12 @@ namespace Markdown
 
         public bool HasTag(string tag)
         {
-            return tags.Contains(tag) || IsBeginningOfList(tag) || IsBeginningOfCodeBlock(tag);
+            return supportedTags.Contains(tag) || IsBeginningOfList(tag) || IsBeginningOfCodeBlock(tag);
         }
 
         public bool ArePairedTags(Tag opening, Tag closing)
         {
-            if ((closing.Name == "\n" || IsHeaderTag(closing.Name)) && IsHeaderTag(opening.Name))
+            if ((IsLineDelimiter(closing.Name) || IsHeaderTag(closing.Name)) && IsHeaderTag(opening.Name))
                 return true;
             return closing.Name == tagPairs[opening.Name];
         }
@@ -128,33 +140,37 @@ namespace Markdown
             return isNumber;
         }
 
+        public bool IsLineDelimiter(string tag)
+        {
+            return tag == "\n";
+        }
+
         public void SetStyle(string style)
         {
-            var openingTags = new Dictionary<string, string>
-            {
-                {"_", "<em{0}>"},
-                {"__", "<strong{0}>"},
-                {"\n", "<p{0}>"},
-                { "#", "<h1{0}>" },
-                {"##", "<h2{0}>" },
-                { "###", "<h3{0}>" },
-                { "####", "<h4{0}>" },
-                { "#####", "<h5{0}>" },
-                { "######", "<h6{0}>" }
-            };
-
+            cssStyle = style;
             OpeningHtmlTags = openingTags
                 .ToDictionary(x => x.Key, x => string.Format(x.Value, style))
                 .ToImmutableDictionary();
 
             htmlUrlTag = $"<a href=\"{{1}}\"{style}>{{0}}</a>";
 
-            CodeBlockTags = Tuple.Create($"<pre{style}><code{style}>", "</code></pre>");
-            ListTags = Tuple.Create($"<ol{style}>", "</ol>");
-            ListEntryTag = Tuple.Create($"<li{style}>", "</li>");
-            UrlTags = Tuple.Create("(", ")");
-            BaseTags = Tuple.Create($"<html{style}>", "</html>");
-            ParagraphTags = Tuple.Create($"<p{style}>", "</p>");
+            CodeBlockTags = new TagPair($"<pre{style}><code{style}>", "</code></pre>");
+            ListTags = new TagPair($"<ol{style}>", "</ol>");
+            ListEntryTag = new TagPair($"<li{style}>", "</li>");
+            UrlTags = new TagPair("(", ")");
+            BaseTags = new TagPair($"<html{style}>", "</html>");
+            ParagraphTags = new TagPair($"<p{style}>", "</p>");
+        }
+
+        public void SetOpeningTags(Dictionary<string, string> tags)
+        {
+            openingTags = tags;
+            SetStyle(cssStyle);
+        }
+
+        public void SetClosingTags(Dictionary<string, string> tags)
+        {
+            ClosingHtmlTags = tags.ToImmutableDictionary();
         }
     }
 }
