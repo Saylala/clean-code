@@ -2,11 +2,11 @@
 {
     public class Tag
     {
-        public string Representation { get; }
+        public string Name { get; }
         public int Position { get; }
         public Tag(string tag, int position)
         {
-            Representation = tag;
+            Name = tag;
             Position = position;
         }
     }

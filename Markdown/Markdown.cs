@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Markdown
 {
-    public class Markdown : IMarkupLanguage
+    public class Markdown
     {
         private string htmlUrlTag;
         private readonly string baseUrl;
@@ -47,23 +47,19 @@ namespace Markdown
             {"######", "</h6>" }
         }.ToImmutableDictionary();
 
-        public bool ParagraphsEnabled { get; }
         public Tuple<string, string> CodeBlockTags { get; set; }
         public Tuple<string, string> ListTags { get; set; }
         public Tuple<string, string> ListEntryTag { get; set; }
+        public Tuple<string, string> UrlTags { get; set; }
+        public Tuple<string, string> BaseTags { get; set; }
+        public Tuple<string, string> ParagraphTags { get; set; }
+        public string StringDelimiter => "\n";
 
-        public Markdown(string style = null, string baseUrl = null, bool paragraphsEnabled = false)
+        public Markdown(string style = null, string baseUrl = null)
         {
             this.baseUrl = baseUrl;
-            ParagraphsEnabled = paragraphsEnabled;
-
             var styleString = style == null ? "" : $@" style=""{style}""";
             SetStyle(styleString);
-        }
-
-        public Tag GetTagFromString(string tag, int position)
-        {
-            return new Tag(tag, position);
         }
 
         public bool HasTag(string tag)
@@ -73,9 +69,9 @@ namespace Markdown
 
         public bool ArePairedTags(Tag opening, Tag closing)
         {
-            if ((closing.Representation == "\n" || closing.Representation[0] == '#') && opening.Representation[0] == '#')
+            if ((closing.Name == "\n" || IsHeaderTag(closing.Name)) && IsHeaderTag(opening.Name))
                 return true;
-            return closing.Representation == tagPairs[opening.Representation];
+            return closing.Name == tagPairs[opening.Name];
         }
 
         public bool IsValidTagContents(char symbol)
@@ -85,12 +81,12 @@ namespace Markdown
 
         public bool IsContentRestrictied(Tag tag)
         {
-            return tag.Representation == "_" || tag.Representation == "__";
+            return tag.Name == "_" || tag.Name == "__";
         }
 
         public bool IsTagWithValidSurroundings(string text, Tag tag, bool isOpeningTag)
         {
-            var bias = isOpeningTag ? tag.Representation.Length : -1;
+            var bias = isOpeningTag ? tag.Name.Length : -1;
             if (tag.Position + bias >= text.Length || tag.Position + bias < 0)
                 return true;
             return text[tag.Position + bias] != ' ';
@@ -105,13 +101,18 @@ namespace Markdown
 
         public bool CanTagBeNestedInside(Tag tag, Tag other)
         {
-            return tag.Representation == "_" && other.Representation == "__";
+            return tag.Name == "_" && other.Name == "__";
         }
 
         public string WrapInHtmlUrlTag(string title, string url)
         {
             var resultUrl = baseUrl == null ? url : baseUrl + url;
             return string.Format(htmlUrlTag, title, resultUrl);
+        }
+
+        public bool IsHeaderTag(string tag)
+        {
+            return tag.Length > 0 && tag.Length < 7 && tag.All(x => x == '#');
         }
 
         public bool IsBeginningOfCodeBlock(string tag)
@@ -127,7 +128,7 @@ namespace Markdown
             return isNumber;
         }
 
-        private void SetStyle(string style)
+        public void SetStyle(string style)
         {
             var openingTags = new Dictionary<string, string>
             {
@@ -151,6 +152,9 @@ namespace Markdown
             CodeBlockTags = Tuple.Create($"<pre{style}><code{style}>", "</code></pre>");
             ListTags = Tuple.Create($"<ol{style}>", "</ol>");
             ListEntryTag = Tuple.Create($"<li{style}>", "</li>");
+            UrlTags = Tuple.Create("(", ")");
+            BaseTags = Tuple.Create($"<html{style}>", "</html>");
+            ParagraphTags = Tuple.Create($"<p{style}>", "</p>");
         }
     }
 }
