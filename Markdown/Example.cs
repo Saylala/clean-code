@@ -10,7 +10,7 @@ namespace Markdown
             var renderer = new MdRenderer(language);
 
             var example1 = "Basic formatting of _italics_ and __bold__ is supported.This __can be _nested_ like__ so.";
-            var example2 = "Ordered list:\n1. Item 1\n2. A second item\n3.Number 3\n4. IV\n\n";
+            var example2 = "Ordered list:\n1. Item 1\n2. A second item\n3. Number 3\n4. IV\n\n";
             var example3 = "Code block:\n\n   Code blocks are very useful for developers.";
             var example4 =
                 "\nHeadings:\nThere are six levels of headings.\n\n#One\n##Two\n###Three\n####Four\n#####Five\n######Six\n";
