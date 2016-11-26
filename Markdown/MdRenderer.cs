@@ -24,29 +24,29 @@ namespace Markdown
             rendered = 0;
             text = markdownText;
             builder = new StringBuilder();
-            builder.Append(language.BaseTags.Item1);
+            builder.Append(language.BaseTags.OpeningTag);
             while (position < text.Length)
             {
                 SkipEmtyLines(position);
                 if (position >= text.Length)
                     break;
-                builder.Append(language.ParagraphTags.Item1);
+                builder.Append(language.ParagraphTags.OpeningTag);
                 RenderNextParagraph();
-                builder.Append(language.ParagraphTags.Item2);
+                builder.Append(language.ParagraphTags.ClosingTag);
             }
-            builder.Append(language.BaseTags.Item2);
+            builder.Append(language.BaseTags.ClosingTag);
             return builder.ToString();
         }
 
         private void SkipEmtyLines(int start)
         {
-            if (text[position].ToString() != language.StringDelimiter)
+            if (!language.IsLineDelimiter(text[position].ToString()))
                 return;
             var currentLine = start;
             var length = text.Length;
             while (position < length && char.IsWhiteSpace(text[position]))
             {
-                if (text[position].ToString() == language.StringDelimiter)
+                if (language.IsLineDelimiter(text[position].ToString()))
                     currentLine = position + 1;
                 position++;
             }
@@ -63,7 +63,7 @@ namespace Markdown
                 rendered = end;
                 if (openingTag == null || !language.IsTagWithValidSurroundings(text, openingTag, true))
                     continue;
-                if (openingTag.Name == language.StringDelimiter)
+                if (language.IsLineDelimiter(openingTag.Name))
                     return;
                 RenderNextTagPair(openingTag);
             }
@@ -78,9 +78,9 @@ namespace Markdown
                 var tag = GetNextTag();
                 if (tag == null)
                     continue;
-                if (tag.Name == language.StringDelimiter && ! language.IsHeaderTag(openingTag.Name))
+                if (language.IsLineDelimiter(tag.Name) && ! language.IsHeaderTag(openingTag.Name))
                     return;
-                if (tag.Name == language.StringDelimiter)
+                if (language.IsLineDelimiter(tag.Name))
                     position++;
 
                 if (language.ArePairedTags(openingTag, tag))
@@ -160,7 +160,7 @@ namespace Markdown
                     continue;
                 }
                 var tag = new Tag(parsedTag, position);
-                if (parsedTag == language.StringDelimiter)
+                if (language.IsLineDelimiter(parsedTag))
                     return tag;
                 position += parsedTag.Length;
 
@@ -168,7 +168,7 @@ namespace Markdown
                 if (isCodeBlock || language.IsBeginningOfList(parsedTag))
                 {
                     var surroundingTags = isCodeBlock ? language.CodeBlockTags : language.ListTags;
-                    var entryTags = isCodeBlock ? Tuple.Create("", "") : language.ListEntryTag;
+                    var entryTags = isCodeBlock ? new TagPair("", "") : language.ListEntryTag;
                     RenderMultilineTag(tag, surroundingTags, entryTags);
                     return null;
                 }
@@ -217,21 +217,21 @@ namespace Markdown
 
         private string GetUrl(int from)
         {
-            if (text[from].ToString() != language.UrlTags.Item1)
+            if (text[from].ToString() != language.UrlTags.OpeningTag)
                 return null;
             while (position < text.Length)
             {
-                if (text[position].ToString() == language.UrlTags.Item2)
+                if (text[position].ToString() == language.UrlTags.ClosingTag)
                     return text.Substring(from + 1, position - from - 1);
                 position++;
             }
             return null;
         }
 
-        private void RenderMultilineTag(Tag opening, Tuple<string, string> surroundingTags, Tuple<string, string> entryTags)
+        private void RenderMultilineTag(Tag opening, TagPair surroundingTags, TagPair entryTags)
         {
             builder.Append(text.Substring(rendered, opening.Position - rendered));
-            builder.Append(surroundingTags.Item1);
+            builder.Append(surroundingTags.OpeningTag);
             rendered = opening.Position;
             var length = text.Length;
             var previous = opening;
@@ -244,20 +244,20 @@ namespace Markdown
                 previous = new Tag(tag, position);
                 position = tag == null ? position + 1 : position + tag.Length;
             }
-            builder.Append(surroundingTags.Item2);
+            builder.Append(surroundingTags.ClosingTag);
         }
 
-        private void RenderEntry(Tag starting, Tuple<string, string> entryTags)
+        private void RenderEntry(Tag starting, TagPair entryTags)
         {
             var length = text.Length;
             while (position < length)
             {
                 var parsedTag = TryParseTag(position);
                 position = parsedTag == null ? position + 1 : position + parsedTag.Length;
-                if ((parsedTag == null || parsedTag != language.StringDelimiter) && position < length) continue;
-                builder.Append(entryTags.Item1);
+                if ((parsedTag == null || !language.IsLineDelimiter(parsedTag)) && position < length) continue;
+                builder.Append(entryTags.OpeningTag);
                 builder.Append(text.Substring(rendered + starting.Name.Length, position - rendered - starting.Name.Length));
-                builder.Append(entryTags.Item2);
+                builder.Append(entryTags.ClosingTag);
                 rendered = position;
                 return;
             }
