@@ -19,7 +19,7 @@ namespace Markdown.Tests
         [TestCase("####")]
         [TestCase("#####")]
         [TestCase("######")]
-        public void IsHeaderTagMethod_CorrectHeaderGiven_TrueReturned(string text)
+        public void IsHeaderTag_ForCorrectHeader_ReturnsTrue(string text)
         {
             Assert.IsTrue(markdown.IsHeaderTag(text));
         }
@@ -27,14 +27,14 @@ namespace Markdown.Tests
         [TestCase("test")]
         [TestCase(" ")]
         [TestCase("########")]
-        public void IsHeaderTagMethod_InvalidHeaderGiven_FalseReturned(string text)
+        public void IsHeaderTag_ForInvalidHeaderGiven_ReturnsFalse(string text)
         {
             Assert.IsFalse(markdown.IsHeaderTag(text));
         }
 
         [TestCase("    ")]
         [TestCase("\t")]
-        public void IsBlockStartMethod_CorrectBlockStarterGiven_TrueReturned(string text)
+        public void IsBlockStart_ForCorrectBlockStarter_ReturnsTrue(string text)
         {
             Assert.IsTrue(markdown.IsBeginningOfCodeBlock(text));
         }
@@ -42,7 +42,7 @@ namespace Markdown.Tests
         [TestCase("test")]
         [TestCase("1")]
         [TestCase("########")]
-        public void IsBlockStartMethod_InvalidBlockStarterGiven_FalseReturned(string text)
+        public void IsBlockStart_ForInvalidBlockStarter_ReturnsFalse(string text)
         {
             Assert.IsFalse(markdown.IsBeginningOfCodeBlock(text));
         }
@@ -52,7 +52,7 @@ namespace Markdown.Tests
         [TestCase("12. ")]
         [TestCase("21. ")]
         [TestCase("2111111111111111111. ")]
-        public void IsListStartMethod_CorrectListStarterGiven_TrueReturned(string text)
+        public void IsListStart_ForCorrectListStarter_ReturnsTrue(string text)
         {
             Assert.IsTrue(markdown.IsBeginningOfList(text));
         }
@@ -62,7 +62,7 @@ namespace Markdown.Tests
         [TestCase("1a2. ")]
         [TestCase("a21. ")]
         [TestCase("aa. ")]
-        public void IsListStartMethod_InvalidListStarterGiven_FalseReturned(string text)
+        public void IsListStart_ForInvalidListStarter_ReturnsFalse(string text)
         {
             Assert.IsFalse(markdown.IsBeginningOfList(text));
         }
@@ -72,7 +72,7 @@ namespace Markdown.Tests
         [TestCase("text")]
         [TestCase(" ")]
         [TestCase("")]
-        public void SetStyleMethod_StyleGiven_OpeningTagsContainStyle(string text)
+        public void SetStyle_ForStyle_OpeningTagsContainStyle(string text)
         {
             var style = $@" style=""{text}""";
             markdown.SetStyle(style);

@@ -22,7 +22,7 @@ namespace Markdown
         [TestCase(" ", ExpectedResult = "<html><p> </p></html>")]
         [TestCase("abc123", ExpectedResult = "<html><p>abc123</p></html>")]
         [TestCase("123 abc", ExpectedResult = "<html><p>123 abc</p></html>")]
-        public string MdRenderer_StringWithoutTagsGiven_InputStringWithTagsReturned(string input)
+        public string Render_StringWithoutTagsGiven_InputStringWithTagsReturned(string input)
         {
             return renderer.Render(input);
         }
@@ -31,7 +31,7 @@ namespace Markdown
         [TestCase("_a_", ExpectedResult = "<html><p><em>a</em></p></html>")]
         [TestCase("abc_d_", ExpectedResult = "<html><p>abc<em>d</em></p></html>")]
         [TestCase("xy_zx_y", ExpectedResult = "<html><p>xy<em>zx</em>y</p></html>")]
-        public string MdRenderer_StringWithItalicGiven_ItalicTagsAreReplaced(string input)
+        public string Render_StringWithItalicGiven_ItalicTagsAreReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -41,7 +41,7 @@ namespace Markdown
         [TestCase(@"\__yzx\__ \_yzx\_ \__yzx\__", ExpectedResult = "<html><p>__yzx__ _yzx_ __yzx__</p></html>")]
         [TestCase(@"abc\__d\__", ExpectedResult = "<html><p>abc__d__</p></html>")]
         [TestCase(@"\_ab\_c", ExpectedResult = "<html><p>_ab_c</p></html>")]
-        public string MdRenderer_StringWithEscapedTags_TagsAreNotReplaced(string input)
+        public string Render_StringWithEscapedTags_TagsAreNotReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -50,7 +50,7 @@ namespace Markdown
         [TestCase("__a__", ExpectedResult = "<html><p><strong>a</strong></p></html>")]
         [TestCase("abc__d__", ExpectedResult = "<html><p>abc<strong>d</strong></p></html>")]
         [TestCase("xy__zx__y", ExpectedResult = "<html><p>xy<strong>zx</strong>y</p></html>")]
-        public string MdRenderer_StringWithBoldGiven_BoldTagsAreReplaced(string input)
+        public string Render_StringWithBoldGiven_BoldTagsAreReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -59,7 +59,7 @@ namespace Markdown
         [TestCase("__a _b_ _b_ _b_ c__", ExpectedResult = "<html><p><strong>a <em>b</em> <em>b</em> <em>b</em> c</strong></p></html>")]
         [TestCase("__abc_abc_abc__ ", ExpectedResult = "<html><p><strong>abc<em>abc</em>abc</strong> </p></html>")]
         [TestCase("__y z x_y z x_y z x__", ExpectedResult = "<html><p><strong>y z x<em>y z x</em>y z x</strong></p></html>")]
-        public string MdRenderer_StringWithItalicInsideBoldGiven_AllTagsAreReplaced(string input)
+        public string Render_StringWithItalicInsideBoldGiven_AllTagsAreReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -69,7 +69,7 @@ namespace Markdown
         [TestCase("_abc__abc__abc_ ", ExpectedResult = "<html><p><em>abc__abc__abc</em> </p></html>")]
         [TestCase("_y z x__y z x__y z x_", ExpectedResult = "<html><p><em>y z x__y z x__y z x</em></p></html>")]
         [TestCase("_y z x__y z x__y z x", ExpectedResult = "<html><p>_y z x<strong>y z x</strong>y z x</p></html>")]
-        public string MdRenderer_StringWithBoldInsideItalicGiven_BoldTagsAreNotReplaced(string input)
+        public string Render_StringWithBoldInsideItalicGiven_BoldTagsAreNotReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -80,7 +80,7 @@ namespace Markdown
         [TestCase("xy_78_y", ExpectedResult = "<html><p>xy_78_y</p></html>")]
         [TestCase("__12__c_abc_", ExpectedResult = "<html><p>__12__c<em>abc</em></p></html>")]
         [TestCase("0__1__abc", ExpectedResult = "<html><p>0__1__abc</p></html>")]
-        public string MdRenderer_StringWithTagsAroundDigitsGiven_TagsAreNotReplaced(string input)
+        public string Render_StringWithTagsAroundDigitsGiven_TagsAreNotReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -89,7 +89,7 @@ namespace Markdown
         [TestCase("__x_", ExpectedResult = "<html><p>__x_</p></html>")]
         [TestCase("abc__d_", ExpectedResult = "<html><p>abc__d_</p></html>")]
         [TestCase("mn__kj_l", ExpectedResult = "<html><p>mn__kj_l</p></html>")]
-        public string MdRenderer_StringWithUnpairedTagsGiven_TagsAreNotReplaced(string input)
+        public string Render_StringWithUnpairedTagsGiven_TagsAreNotReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -98,7 +98,7 @@ namespace Markdown
         [TestCase("_ tags_", ExpectedResult = "<html><p>_ tags_</p></html>")]
         [TestCase("abc_ d_", ExpectedResult = "<html><p>abc_ d_</p></html>")]
         [TestCase("mn__ abc__l", ExpectedResult = "<html><p>mn__ abc__l</p></html>")]
-        public string MdRenderer_StringWithInvalidOpeningTagsGiven_TagsAreNotReplaced(string input)
+        public string Render_StringWithInvalidOpeningTagsGiven_TagsAreNotReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -107,7 +107,7 @@ namespace Markdown
         [TestCase("_tags _", ExpectedResult = "<html><p>_tags _</p></html>")]
         [TestCase("abc_d _", ExpectedResult = "<html><p>abc_d _</p></html>")]
         [TestCase("mn__abc __l", ExpectedResult = "<html><p>mn__abc __l</p></html>")]
-        public string MdRenderer_StringWithInvalidClosingTagsGiven_TagsAreNotReplaced(string input)
+        public string Render_StringWithInvalidClosingTagsGiven_TagsAreNotReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -115,7 +115,7 @@ namespace Markdown
         [TestCase("__ab__c_abc_", ExpectedResult = "<html><p><strong>ab</strong>c<em>abc</em></p></html>")]
         [TestCase("__d__ _b_ ", ExpectedResult = "<html><p><strong>d</strong> <em>b</em> </p></html>")]
         [TestCase("__yzx__ _yzx_ __yzx__", ExpectedResult = "<html><p><strong>yzx</strong> <em>yzx</em> <strong>yzx</strong></p></html>")]
-        public string MdRenderer_StringWithMultipleTagsGiven_TagsAreReplaced(string input)
+        public string Render_StringWithMultipleTagsGiven_TagsAreReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -124,7 +124,7 @@ namespace Markdown
         [TestCase(100, 10000, "__")]
         [TestCase(100, 10000, "_a_")]
         [TestCase(100, 10000, "__a__")]
-        public void MdRenderer_ShouldHave_LinearPerformance(int count1, int count2, string pattern)
+        public void Render_ShouldHave_LinearPerformance(int count1, int count2, string pattern)
         {
             const int expectedCoef = 3;
 
@@ -148,7 +148,7 @@ namespace Markdown
         [TestCase("[]()", ExpectedResult = "<html><p><a href=\"\"></a></p></html>")]
         [TestCase("[1](1)", ExpectedResult = "<html><p><a href=\"1\">1</a></p></html>")]
         [TestCase("[Test](http://2.2/)", ExpectedResult = "<html><p><a href=\"http://2.2/\">Test</a></p></html>")]
-        public string MdRenderer_StringWithLinksGiven_TagsAreReplaced(string input)
+        public string Render_StringWithLinksGiven_TagsAreReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -157,7 +157,7 @@ namespace Markdown
         [TestCase("[]()", "http://test.test/", ExpectedResult = "<html><p><a href=\"http://test.test/\"></a></p></html>")]
         [TestCase("[1](1)", "test", ExpectedResult = "<html><p><a href=\"test1\">1</a></p></html>")]
         [TestCase("[Test](2)", "http://2.2/", ExpectedResult = "<html><p><a href=\"http://2.2/2\">Test</a></p></html>")]
-        public string MdRenderer_StringWithRelativeLinksGiven_TagsAreReplaced(string input, string baseUrl)
+        public string Render_StringWithRelativeLinksGiven_TagsAreReplaced(string input, string baseUrl)
         {
             var markdown = new Markdown(baseUrl: baseUrl);
             var testRenderer = new MdRenderer(markdown);
@@ -169,7 +169,7 @@ namespace Markdown
         [TestCase("__ab__c", "b", ExpectedResult = "<html style=\"b\"><p style=\"b\"><strong style=\"b\">ab</strong>c</p></html>")]
         [TestCase("__ab__c_abc_", "c", ExpectedResult = "<html style=\"c\"><p style=\"c\"><strong style=\"c\">ab</strong>c<em style=\"c\">abc</em></p></html>")]
         [TestCase("[]()", "d", ExpectedResult = "<html style=\"d\"><p style=\"d\"><a href=\"\" style=\"d\"></a></p></html>")]
-        public string MdRenderer_StyleSettedGiven_TagsAreReplacedWithStyle(string input, string style)
+        public string Render_StyleSettedGiven_TagsAreReplacedWithStyle(string input, string style)
         {
             var markdown = new Markdown(style);
             var testRenderer = new MdRenderer(markdown);
@@ -181,7 +181,7 @@ namespace Markdown
         [TestCase("a\n\na", ExpectedResult = "<html><p>a</p><p>a</p></html>")]
         [TestCase("\na\n", ExpectedResult = "<html><p>a</p></html>")]
         [TestCase("\n\na\n\n", ExpectedResult = "<html><p>a</p></html>")]
-        public string MdRenderer_StringWithParagraphsGiven_TagsAreReplaced(string input)
+        public string Render_StringWithParagraphsGiven_TagsAreReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -195,7 +195,7 @@ namespace Markdown
         [TestCase("##a#", ExpectedResult = "<html><p><h2>a</h2></p></html>")]
         [TestCase("#####a#", ExpectedResult = "<html><p><h5>a</h5></p></html>")]
         [TestCase("#a##", ExpectedResult = "<html><p><h1>a</h1></p></html>")]
-        public string MdRenderer_StringWithHeadersGiven_TagsAreReplaced(string input)
+        public string Render_StringWithHeadersGiven_TagsAreReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -204,7 +204,7 @@ namespace Markdown
         [TestCase("        a", ExpectedResult = "<html><p><pre><code>    a</code></pre></p></html>")]
         [TestCase("    a\n    a", ExpectedResult = "<html><p><pre><code>a\na</code></pre></p></html>")]
         [TestCase("    a\n        a", ExpectedResult = "<html><p><pre><code>a\n    a</code></pre></p></html>")]
-        public string MdRenderer_StringWithCodeBlocksGiven_TagsAreReplaced(string input)
+        public string Render_StringWithCodeBlocksGiven_TagsAreReplaced(string input)
         {
             return renderer.Render(input);
         }
@@ -213,7 +213,7 @@ namespace Markdown
         [TestCase("1. 1\n2. 2", ExpectedResult = "<html><p><ol><li>1\n</li><li>2</li></ol></p></html>")]
         [TestCase("2. 1\n1. 2", ExpectedResult = "<html><p><ol><li>1\n</li><li>2</li></ol></p></html>")]
         [TestCase("2. 1\n2. 2", ExpectedResult = "<html><p><ol><li>1\n</li><li>2</li></ol></p></html>")]
-        public string MdRenderer_StringWithListGiven_TagsAreReplaced(string input)
+        public string Render_StringWithListGiven_TagsAreReplaced(string input)
         {
             return renderer.Render(input);
         }
