@@ -1,0 +1,1 @@
+﻿Basic formatting of _italics_ and __bold__ is supported.This __can be _nested_ like__ so. Named link to [Repository](https://github.com/Saylala/clean-code)

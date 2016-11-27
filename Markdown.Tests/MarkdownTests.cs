@@ -27,7 +27,7 @@ namespace Markdown.Tests
         [TestCase("test")]
         [TestCase(" ")]
         [TestCase("########")]
-        public void IsHeaderTag_ForInvalidHeaderGiven_ReturnsFalse(string text)
+        public void IsHeaderTag_ForInvalidHeader_ReturnsFalse(string text)
         {
             Assert.IsFalse(markdown.IsHeaderTag(text));
         }
@@ -72,7 +72,7 @@ namespace Markdown.Tests
         [TestCase("text")]
         [TestCase(" ")]
         [TestCase("")]
-        public void SetStyle_ForStyle_OpeningTagsContainStyle(string text)
+        public void SetStyle_ForStyle_AddsStyleToOpeningTags(string text)
         {
             var style = $@" style=""{text}""";
             markdown.SetStyle(style);
