@@ -33,7 +33,7 @@ namespace Markdown
 
         public ImmutableDictionary<string, string> OpeningHtmlTags { get; private set; }
 
-        private Dictionary<string, string> openingTags = new Dictionary<string, string>
+        private readonly Dictionary<string, string> openingHtmlTags = new Dictionary<string, string>
         {
             {"_", "<em{0}>"},
             {"__", "<strong{0}>"},
@@ -46,18 +46,20 @@ namespace Markdown
             {"######", "<h6{0}>"}
         };
 
-        public ImmutableDictionary<string, string> ClosingHtmlTags { get; private set; } = new Dictionary<string, string>
-        {
-            { "_", "</em>" },
-            { "__", "</strong>" },
-            { "\n", "</p>" },
-            {"#", "</h1>" },
-            {"##", "</h2>" },
-            {"###", "</h3>" },
-            {"####", "</h4>" },
-            {"#####", "</h5>" },
-            {"######", "</h6>" }
-        }.ToImmutableDictionary();
+        public ImmutableDictionary<string, string> ClosingHtmlTags { get; private set; }
+
+	    private readonly Dictionary<string, string> closingHtmlTags = new Dictionary<string, string>
+	    {
+		    { "_", "</em>" },
+		    { "__", "</strong>" },
+		    { "\n", "</p>" },
+		    { "#", "</h1>" },
+		    { "##", "</h2>" },
+		    { "###", "</h3>" },
+		    { "####", "</h4>" },
+		    { "#####", "</h5>" },
+		    { "######", "</h6>" }
+	    };
 
         public TagPair CodeBlockTags { get; private set; }
         public TagPair ListTags { get; private set; }
@@ -65,16 +67,27 @@ namespace Markdown
         public TagPair UrlTags { get; private set; }
         public TagPair BaseTags { get; private set; }
         public TagPair ParagraphTags { get; private set; }
-        private string cssStyle = "";
 
-        public Markdown(string style = null, string baseUrl = null)
-        {
-            this.baseUrl = baseUrl;
-            var styleString = style == null ? "" : $@" style=""{style}""";
-            SetStyle(styleString);
-        }
+	    public Markdown(string style = null, string baseUrl = null)
+	    {
+		    this.baseUrl = baseUrl;
+		    var styleString = style == null ? "" : $@" style=""{style}""";
+		    SetStyle(styleString);
+		    ClosingHtmlTags = closingHtmlTags.ToImmutableDictionary();
+	    }
 
-        public bool HasTag(string tag)
+	    public Markdown(Dictionary<string, string> openingTags, Dictionary<string, string> closingTags, string style = null,
+		    string baseUrl = null)
+	    {
+			this.baseUrl = baseUrl;
+			var styleString = style == null ? "" : $@" style=""{style}""";
+		    openingHtmlTags = openingTags;
+		    ClosingHtmlTags = closingTags.ToImmutableDictionary();
+			SetStyle(styleString);
+		}
+
+
+	    public bool HasTag(string tag)
         {
             return supportedTags.Contains(tag) || IsBeginningOfList(tag) || IsBeginningOfCodeBlock(tag);
         }
@@ -147,8 +160,7 @@ namespace Markdown
 
         public void SetStyle(string style)
         {
-            cssStyle = style;
-            OpeningHtmlTags = openingTags
+	        OpeningHtmlTags = openingHtmlTags
                 .ToDictionary(x => x.Key, x => string.Format(x.Value, style))
                 .ToImmutableDictionary();
 
@@ -160,17 +172,6 @@ namespace Markdown
             UrlTags = new TagPair("(", ")");
             BaseTags = new TagPair($"<html{style}>", "</html>");
             ParagraphTags = new TagPair($"<p{style}>", "</p>");
-        }
-
-        public void SetOpeningTags(Dictionary<string, string> tags)
-        {
-            openingTags = tags;
-            SetStyle(cssStyle);
-        }
-
-        public void SetClosingTags(Dictionary<string, string> tags)
-        {
-            ClosingHtmlTags = tags.ToImmutableDictionary();
         }
     }
 }

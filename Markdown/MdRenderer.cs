@@ -27,58 +27,55 @@ namespace Markdown
             builder.Append(language.BaseTags.OpeningTag);
             while (position < text.Length)
             {
-                SkipEmtyLines(position);
+                position = SkipEmtyLines(position);
                 if (position >= text.Length)
                     break;
                 builder.Append(language.ParagraphTags.OpeningTag);
-                RenderNextParagraph();
+                RenderNextParagraph(position);
                 builder.Append(language.ParagraphTags.ClosingTag);
             }
             builder.Append(language.BaseTags.ClosingTag);
             return builder.ToString();
         }
 
-        private void SkipEmtyLines(int start)
+        private int SkipEmtyLines(int start)
         {
             if (!language.IsLineDelimiter(text[position].ToString()))
-                return;
+                return start;
             var currentLine = start;
-            var length = text.Length;
-            while (position < length && char.IsWhiteSpace(text[position]))
+            int pos;
+            for (pos = start; pos < text.Length && char.IsWhiteSpace(text[pos]); pos++)
             {
-                if (language.IsLineDelimiter(text[position].ToString()))
-                    currentLine = position + 1;
-                position++;
+                if (language.IsLineDelimiter(text[pos].ToString()))
+                    currentLine = pos + 1;
             }
             rendered = currentLine;
+            return pos;
         }
 
-        private void RenderNextParagraph()
+        private void RenderNextParagraph(int start)
         {
-            while (position < text.Length)
+            foreach (var openingTag in GetTags())
             {
-                var openingTag = GetNextTag();
-                var end = openingTag == null ? text.Length : openingTag.Position;
-                builder.Append(text.Substring(rendered, end - rendered));
-                rendered = end;
-                if (openingTag == null || !language.IsTagWithValidSurroundings(text, openingTag, true))
+                builder.Append(text.Substring(rendered, openingTag.Position - rendered));
+                rendered = openingTag.Position;
+                if (!language.IsTagWithValidSurroundings(text, openingTag, true))
                     continue;
                 if (language.IsLineDelimiter(openingTag.Name))
                     return;
                 RenderNextTagPair(openingTag);
             }
+            builder.Append(text.Substring(rendered, text.Length - rendered));
+            rendered = text.Length;
         }
 
 
         private void RenderNextTagPair(Tag openingTag)
         {
-            var nestedTags = new List<Tuple<Tag, Tag>>();
-            while (position < text.Length)
+            IEnumerable<Tuple<Tag, Tag>> nestedTags = new List<Tuple<Tag, Tag>>();
+            foreach (var tag in GetTags())
             {
-                var tag = GetNextTag();
-                if (tag == null)
-                    continue;
-                if (language.IsLineDelimiter(tag.Name) && ! language.IsHeaderTag(openingTag.Name))
+                if (language.IsLineDelimiter(tag.Name) && !language.IsHeaderTag(openingTag.Name))
                     return;
                 if (language.IsLineDelimiter(tag.Name))
                     position++;
@@ -96,28 +93,25 @@ namespace Markdown
                     return;
                 }
                 if (language.IsTagWithValidSurroundings(text, tag, true))
-                    GetNestedTags(tag, openingTag, nestedTags);
+                    nestedTags = nestedTags.Concat(GetNestedTags(tag, openingTag)).ToList();
             }
             RenderTags(nestedTags, openingTag, null, false);
         }
 
-        private void GetNestedTags(Tag openingTag, Tag surroundingTag, List<Tuple<Tag, Tag>> output)
+        private IEnumerable<Tuple<Tag, Tag>> GetNestedTags(Tag openingTag, Tag surroundingTag)
         {
-            while (position < text.Length)
+            foreach (var tag in GetTags())
             {
-                var tag = GetNextTag();
-                if (tag == null)
-                    continue;
                 if (tag.Name == surroundingTag.Name)
                 {
                     if (!language.IsTagWithValidSurroundings(text, tag, false))
                         continue;
                     position -= tag.Name.Length;
-                    return;
+                    break;
                 }
                 if (tag.Name != openingTag.Name) continue;
-                output.Add(Tuple.Create(openingTag, tag));
-                return;
+                yield return Tuple.Create(openingTag, tag);
+                break;
             }
         }
 
@@ -139,21 +133,23 @@ namespace Markdown
                     continue;
                 WrapInTag(pair.Item1.Position, pair.Item2.Position, pair.Item1.Name, pair.Item2.Name);
             }
-
-            var end = closingTag == null ? text.Length - rendered : closingTag.Position - rendered;
-            var endTag = closingTag == null ? string.Empty : language.ClosingHtmlTags[openingTag.Name];
+            if (closingTag == null)
+                return;
+            var end = closingTag.Position - rendered;
+            var endTag = language.ClosingHtmlTags[openingTag.Name];
             builder.Append(text.Substring(rendered, end));
             builder.Append(endTag);
-            rendered = closingTag == null ? text.Length - rendered : closingTag.Position + closingTag.Name.Length;
+            rendered = closingTag.Position + closingTag.Name.Length;
         }
 
-        private Tag GetNextTag()
+        private IEnumerable<Tag> GetTags()
         {
             var hasValidContents = true;
             while (position < text.Length)
             {
-                var parsedTag = TryParseTag(position);
-                if (parsedTag == null)
+                string parsedTag;
+                var success = TryParseTag(position, out parsedTag);
+                if (!success)
                 {
                     hasValidContents = language.IsValidTagContents(text[position]);
                     position++;
@@ -161,7 +157,7 @@ namespace Markdown
                 }
                 var tag = new Tag(parsedTag, position);
                 if (language.IsLineDelimiter(parsedTag))
-                    return tag;
+                    yield return tag;
                 position += parsedTag.Length;
 
                 var isCodeBlock = language.IsBeginningOfCodeBlock(parsedTag);
@@ -170,38 +166,37 @@ namespace Markdown
                     var surroundingTags = isCodeBlock ? language.CodeBlockTags : language.ListTags;
                     var entryTags = isCodeBlock ? new TagPair("", "") : language.ListEntryTag;
                     RenderMultilineTag(tag, surroundingTags, entryTags);
-                    return null;
+                    continue;
                 }
 
                 var isEscaped = language.IsEscapedTag(tag, text);
                 if ((hasValidContents || !language.IsContentRestrictied(tag)) && !isEscaped)
-                    return tag;
+                    yield return tag;
                 if (isEscaped)
-                    UnescapeTag(tag);
+                    RenderEscapedTag(tag);
                 hasValidContents = true;
             }
-            return null;
         }
 
-        private string TryParseTag(int start)
+        private bool TryParseTag(int start, out string tag)
         {
-            string result = null;
+            string str = null;
             var maxLen = language.ClosingHtmlTags.Keys.Max(x => x.Length);
             for (var length = 1; length < maxLen + 1 && length + start < text.Length + 1; length++)
             {
                 var subStr = text.Substring(start, length);
                 if (language.HasTag(subStr))
-                    result = subStr;
+                    str = subStr;
             }
-            return result;
+            tag = str;
+            return str != null;
         }
 
-        private void UnescapeTag(Tag tag)
+        private void RenderEscapedTag(Tag tag)
         {
-            var tempBulder = new StringBuilder(text);
-            tempBulder.Remove(tag.Position - 1, 1);
-            text = tempBulder.ToString();
-            position--;
+            builder.Append(text.Substring(rendered, tag.Position - rendered - 1));
+            builder.Append(tag.Name);
+            rendered = tag.Position + tag.Name.Length;
         }
 
         private void RenderUrl(Tag opening, Tag closing)
@@ -240,9 +235,10 @@ namespace Markdown
             {
                 if (previous.Name != null)
                     RenderEntry(previous, entryTags);
-                var tag = TryParseTag(position);
+                string tag;
+                var success = TryParseTag(position, out tag);
                 previous = new Tag(tag, position);
-                position = tag == null ? position + 1 : position + tag.Length;
+                position = success ? position + tag.Length : position + 1;
             }
             builder.Append(surroundingTags.ClosingTag);
         }
@@ -252,8 +248,9 @@ namespace Markdown
             var length = text.Length;
             while (position < length)
             {
-                var parsedTag = TryParseTag(position);
-                position = parsedTag == null ? position + 1 : position + parsedTag.Length;
+                string parsedTag;
+                var success = TryParseTag(position, out parsedTag);
+                position = success ? position + parsedTag.Length : position + 1;
                 if ((parsedTag == null || !language.IsLineDelimiter(parsedTag)) && position < length) continue;
                 builder.Append(entryTags.OpeningTag);
                 builder.Append(text.Substring(rendered + starting.Name.Length, position - rendered - starting.Name.Length));
