@@ -76,12 +76,16 @@ namespace Markdown
 		    ClosingHtmlTags = closingHtmlTags.ToImmutableDictionary();
 	    }
 
-	    public Markdown(Dictionary<string, string> openingTags, Dictionary<string, string> closingTags, string style = null,
-		    string baseUrl = null)
+	    public Markdown(
+			Dictionary<string, string> openingTags, Dictionary<string, string> closingTags,
+			Dictionary<string, string> tagPairs, HashSet<string> supportedTags,
+			string style = null,string baseUrl = null)
 	    {
 			this.baseUrl = baseUrl;
 			var styleString = style == null ? "" : $@" style=""{style}""";
 		    openingHtmlTags = openingTags;
+		    this.tagPairs = tagPairs;
+		    this.supportedTags = supportedTags;
 		    ClosingHtmlTags = closingTags.ToImmutableDictionary();
 			SetStyle(styleString);
 		}
