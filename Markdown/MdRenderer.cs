@@ -31,7 +31,7 @@ namespace Markdown
                 if (position >= text.Length)
                     break;
                 builder.Append(language.ParagraphTags.OpeningTag);
-                RenderNextParagraph(position);
+                RenderNextParagraph();
                 builder.Append(language.ParagraphTags.ClosingTag);
             }
             builder.Append(language.BaseTags.ClosingTag);
@@ -53,7 +53,7 @@ namespace Markdown
             return pos;
         }
 
-        private void RenderNextParagraph(int start)
+        private void RenderNextParagraph()
         {
             foreach (var openingTag in GetTags())
             {
@@ -72,7 +72,7 @@ namespace Markdown
 
         private void RenderNextTagPair(Tag openingTag)
         {
-            IEnumerable<Tuple<Tag, Tag>> nestedTags = new List<Tuple<Tag, Tag>>();
+            List<Tuple<Tag, Tag>> nestedTags = new List<Tuple<Tag, Tag>>();
             foreach (var tag in GetTags())
             {
                 if (language.IsLineDelimiter(tag.Name) && !language.IsHeaderTag(openingTag.Name))
@@ -93,12 +93,12 @@ namespace Markdown
                     return;
                 }
                 if (language.IsTagWithValidSurroundings(text, tag, true))
-                    nestedTags = nestedTags.Concat(GetNestedTags(tag, openingTag)).ToList();
+                    nestedTags.Add(GetNestedTags(tag, openingTag));
             }
             RenderTags(nestedTags, openingTag, null, false);
         }
 
-        private IEnumerable<Tuple<Tag, Tag>> GetNestedTags(Tag openingTag, Tag surroundingTag)
+        private Tuple<Tag, Tag> GetNestedTags(Tag openingTag, Tag surroundingTag)
         {
             foreach (var tag in GetTags())
             {
@@ -110,9 +110,9 @@ namespace Markdown
                     break;
                 }
                 if (tag.Name != openingTag.Name) continue;
-                yield return Tuple.Create(openingTag, tag);
-                break;
+                return Tuple.Create(openingTag, tag);
             }
+	        return null;
         }
 
         private void RenderTags(IEnumerable<Tuple<Tag, Tag>> tags, Tag openingTag, Tag closingTag, bool isNested)
@@ -124,7 +124,7 @@ namespace Markdown
             builder.Append(opening);
             rendered = openingTag.Position + openingTag.Name.Length;
 
-            foreach (var pair in tags)
+            foreach (var pair in tags.Where(x => x != null))
             {
                 builder.Append(text.Substring(rendered, pair.Item1.Position - rendered));
                 rendered = pair.Item1.Position;
